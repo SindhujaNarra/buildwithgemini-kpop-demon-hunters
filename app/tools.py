@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import json
 import urllib.parse
 import urllib.request
@@ -567,6 +568,101 @@ async def generate_item_image(
         "artifact_saved": artifact_saved,
         "message": f"✨ Generated vibrant image for '{item_name}'! View it at: {public_url}",
     }
+
+
+# ============================================================================
+# Video Generation Function Tool (gemini-omni-flash-preview in global region)
+# ============================================================================
+
+async def generate_item_video(
+    item_name: str,
+    tool_context: Optional[ToolContext] = None,
+) -> Dict[str, Any]:
+    """Generates a short video for an item in the K-Pop Demon Hunters domain (gear, lightstick, crystal, demon, or stage prop).
+
+    Uses Google's Omni model (gemini-omni-flash-preview) in the global region via the Interactions API,
+    saves the video as a session artifact using tool_context.save_artifact so it appears in the
+    Playground's Artifacts panel, uploads the video bytes to the public Cloud Storage bucket, and returns
+    its public HTTPS URL (https://storage.googleapis.com/<bucket>/<object>).
+
+    Args:
+        item_name: Name or description of the magical item, lightstick, crystal, demon encounter, or outfit
+                   (e.g., 'Rainbow Lightstick', 'Starlight Mic', 'Glitter Beat Crystal', 'Groove Gremlin Sparky').
+        tool_context: Optional session tool context injected by the ADK framework.
+
+    Returns:
+        A dictionary containing the public Cloud Storage HTTPS URL, item name, filename, and status.
+    """
+    prompt = (
+        f"A short, vibrant, family-friendly anime K-Pop Demon Hunters 3D video clip of '{item_name}'. "
+        "Magical sparkling neon lighting effects, glowing energy pulses, high quality animated K-Pop idol stage gear, "
+        "whimsical, cheerful, dynamic motion, 100% child-friendly."
+    )
+
+    client = genai.Client(vertexai=True, project=FIRESTORE_PROJECT_ID, location="global")
+    interaction = client.interactions.create(
+        model="gemini-omni-flash-preview",
+        input=prompt,
+    )
+
+    video_bytes = None
+    mime_type = "video/mp4"
+
+    # Inspect interaction steps for video content
+    if interaction and hasattr(interaction, "steps") and interaction.steps:
+        for step in interaction.steps:
+            if hasattr(step, "content") and step.content:
+                for content_item in step.content:
+                    if getattr(content_item, "type", None) == "video" and getattr(content_item, "data", None):
+                        raw_data = content_item.data
+                        if isinstance(raw_data, str):
+                            video_bytes = base64.b64decode(raw_data)
+                        elif isinstance(raw_data, (bytes, bytearray)):
+                            video_bytes = bytes(raw_data)
+                        mime_type = getattr(content_item, "mime_type", None) or "video/mp4"
+                        break
+            if video_bytes:
+                break
+
+    if not video_bytes:
+        return {
+            "status": "error",
+            "message": f"Model failed to generate video bytes for '{item_name}'.",
+        }
+
+    clean_slug = item_name.strip().lower().replace(" ", "_").replace("/", "_")
+    unique_suffix = uuid.uuid4().hex[:8]
+    ext = "mp4"
+    object_name = f"artifacts/{clean_slug}_{unique_suffix}.{ext}"
+    filename = f"{clean_slug}.{ext}"
+
+    # (1) Save it with tool_context.save_artifact so it shows up in Playground's Artifacts panel
+    artifact_saved = False
+    if tool_context is not None:
+        try:
+            artifact_part = genai_types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
+            await tool_context.save_artifact(filename=filename, artifact=artifact_part)
+            artifact_saved = True
+        except Exception as e:
+            print(f"Warning: could not save artifact to tool_context: {e}")
+
+    # (2) Upload the same video bytes to the public Cloud Storage bucket
+    storage_client = storage.Client(project=FIRESTORE_PROJECT_ID)
+    bucket = storage_client.bucket(GCS_BUCKET_NAME)
+    blob = bucket.blob(object_name)
+    blob.upload_from_string(video_bytes, content_type=mime_type)
+
+    public_url = f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{object_name}"
+
+    return {
+        "status": "success",
+        "item_name": item_name,
+        "public_url": public_url,
+        "filename": filename,
+        "artifact_saved": artifact_saved,
+        "message": f"🎬 Generated magical video clip for '{item_name}'! View it at: {public_url}",
+    }
+
 
 
 

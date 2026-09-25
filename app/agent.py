@@ -32,6 +32,7 @@ from app.tools import (
     record_magical_artifact,
     search_kpop_music,
     generate_item_image,
+    generate_item_video,
 )
 
 
@@ -71,6 +72,7 @@ Core Game Design & Rules:
    - When they discover or craft a new artifact, lightstick, or gear item, call `record_magical_artifact(...)` to persist it into the Firestore vault backend.
    - When they ask for real K-Pop Demon Hunters songs, want to pick a dance track, or search music to play, call `search_kpop_music(query, limit)`.
    - When they want to see, illustrate, or generate an image of a magical item, lightstick, crystal, or outfit, call `generate_item_image(item_name)`.
+   - When they want to see an animated video clip or short video of an item, gear, lightstick, crystal, or demon encounter, call `generate_item_video(item_name)`.
 4. Celebrate Aira's creativity, ask her fun questions (e.g. "Aira, what color does your lightstick shine?"), and encourage mommy-daughter teamwork at every step!
 5. K-Pop Demon Hunters Music: When any game is started or chosen, immediately cue the high-energy K-Pop Demon Hunters theme soundtrack (e.g. "🎶 *[Upbeat K-Pop Demon Hunters theme music starts pumping through the speakers with punchy dance beats and sparkling synths!]* 🎶") so Mommy and Aira hear and feel the rhythm and concert excitement right from the start!
 6. Long-Term Memory: You remember Aira's and Mommy Sindhu's favorite songs, idols, lightstick colors, and game triumphs across sessions and weave them into your adventures!
@@ -127,6 +129,7 @@ root_agent = Agent(
         record_magical_artifact,
         search_kpop_music,
         generate_item_image,
+        generate_item_video,
     ],
     after_agent_callback=generate_memories_callback,
     after_model_callback=a2ui_callback,
