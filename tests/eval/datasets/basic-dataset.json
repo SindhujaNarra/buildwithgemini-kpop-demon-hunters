@@ -1,0 +1,25 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "greeting_intro",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Hello! I am Sindhu and here with my 6 year old daughter Aira. What K-Pop Demon Hunter adventures can we play together?"}]
+      }
+    },
+    {
+      "eval_case_id": "treasure_hunt_search",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "We want to play the treasure hunt! Let's search the backstage dressing room for our first clue!"}]
+      }
+    },
+    {
+      "eval_case_id": "dance_battle_move",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Let's do the demon battle! Aira wants to use her special sparkle twinkle spin move to boost the harmony meter!"}]
+      }
+    }
+  ]
+}
