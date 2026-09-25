@@ -552,11 +552,14 @@ let player = {
   angle: 0
 };
 
-// FEATURE 5: AI IDOL COMPANIONS (Rumi, Mira, Zoey)
+// HERO LEADER & 4-MEMBER IDOL SQUAD:
+// Leader: Mommy Sindhu (Strategist)
+// 4 Companions: Rumi (Main Vocal), Mira (Lead Dancer), Zoey (Rap/Tech), Aira (Star Hunter, 4th Companion)
 let companions = [
-  { name: "Rumi (Vocal)", icon: "🎤", x: width/2 - 50, y: height/2 + 20, role: "healer", offset: -50 },
-  { name: "Mira (Dancer)", icon: "🩰", x: width/2 + 50, y: height/2 + 20, role: "combo", offset: 50 },
-  { name: "Zoey (Rap/Tech)", icon: "🎧", x: width/2, y: height/2 + 60, role: "shield", offset: 0 }
+  { name: "Rumi", title: "Main Vocal", color: "#ff6bb5", hair: "#ff2a85", role: "healer", offsetX: -60, offsetY: 25, animFrame: 0, bobSpeed: 0.08, x: width/2 - 60, y: height/2 + 25 },
+  { name: "Mira", title: "Lead Dancer", color: "#9d4edd", hair: "#7b2cbf", role: "combo", offsetX: 60, offsetY: 25, animFrame: 1.5, bobSpeed: 0.1, x: width/2 + 60, y: height/2 + 25 },
+  { name: "Zoey", title: "Tech / Rap", color: "#00f0ff", hair: "#0077b6", role: "shield", offsetX: -30, offsetY: 65, animFrame: 3.0, bobSpeed: 0.09, x: width/2 - 30, y: height/2 + 65 },
+  { name: "Aira", title: "Star Hunter (4th)", color: "#ffd700", hair: "#ff9e00", role: "sparkle", offsetX: 30, offsetY: 65, animFrame: 4.5, bobSpeed: 0.12, x: width/2 + 30, y: height/2 + 65 }
 ];
 
 // FEATURE 4: BACKSTAGE ROOM PORTALS
@@ -749,16 +752,22 @@ function update() {
   player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
   player.y = Math.max(player.radius + 60, Math.min(height - player.radius - 120, player.y));
 
-  // Update AI Companions (Follow player smoothly)
-  companions.forEach((c, i) => {
-    const targetX = player.x + c.offset;
-    const targetY = player.y + 35;
+  // Update AI Companions (Follow player smoothly in dynamic formation)
+  companions.forEach((c) => {
+    c.animFrame += c.bobSpeed;
+    const targetX = player.x + c.offsetX;
+    const targetY = player.y + c.offsetY;
     c.x += (targetX - c.x) * 0.08;
     c.y += (targetY - c.y) * 0.08;
 
     // Rumi passive healing
-    if (c.role === "healer" && player.hp < 100 && Math.random() < 0.01) {
+    if (c.role === "healer" && player.hp < 100 && Math.random() < 0.015) {
       player.hp = Math.min(100, player.hp + 2);
+      updateHUD();
+    }
+    // Aira passive sparkle booster (4th companion)
+    if (c.role === "sparkle" && player.sparkle < 100 && Math.random() < 0.03) {
+      player.sparkle = Math.min(100, player.sparkle + 1.5);
       updateHUD();
     }
   });
@@ -935,37 +944,107 @@ function render() {
     ctx.restore();
   }
 
-  // 3. IDOL COMPANIONS (Rumi, Mira, Zoey)
-  companions.forEach(c => {
+  // HELPER: Draw Animated Anime-Style Character Sprite
+  function drawAnimeIdol(x, y, char, isLeader = false) {
     ctx.save();
-    ctx.translate(c.x, c.y);
-    ctx.font = "24px sans-serif";
+    const bob = Math.sin(char.animFrame || 0) * 3.5;
+    ctx.translate(x, y + bob);
+
+    // 1. Magical Stage Aura / Glow Halo
+    ctx.beginPath();
+    ctx.arc(0, 0, isLeader ? 26 : 21, 0, Math.PI * 2);
+    ctx.fillStyle = isLeader ? "rgba(255, 215, 0, 0.35)" : (char.color + "33");
+    ctx.shadowColor = isLeader ? "#ffd700" : char.color;
+    ctx.shadowBlur = 14;
+    ctx.fill();
+
+    // 2. Character Body / Stage Costume
+    ctx.beginPath();
+    ctx.arc(0, 4, isLeader ? 15 : 12, 0, Math.PI * 2);
+    ctx.fillStyle = isLeader ? "linear-gradient(#ff2a85, #8a2be2)" : char.color;
+    ctx.fill();
+
+    // 3. Hair (Back Layer)
+    ctx.beginPath();
+    ctx.arc(0, -6, isLeader ? 15 : 12, 0, Math.PI * 2);
+    ctx.fillStyle = char.hair;
+    ctx.fill();
+
+    // 4. Face / Skin
+    ctx.beginPath();
+    ctx.arc(0, -5, isLeader ? 11 : 9, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffdfba";
+    ctx.fill();
+
+    // 5. Anime Eyes & Blushes
+    ctx.fillStyle = "#110e20";
+    ctx.fillRect(-4, -6, 2.5, 3.5);
+    ctx.fillRect(2, -6, 2.5, 3.5);
+    // Eye sparkle
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(-3.5, -6, 1.2, 1.2);
+    ctx.fillRect(2.5, -6, 1.2, 1.2);
+    // Cheerful blush
+    ctx.fillStyle = "rgba(255, 105, 180, 0.6)";
+    ctx.beginPath();
+    ctx.arc(-5, -2.5, 2, 0, Math.PI * 2);
+    ctx.arc(5, -2.5, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 6. Hair Bangs & Front Style
+    ctx.fillStyle = char.hair;
+    ctx.beginPath();
+    ctx.arc(0, -11, isLeader ? 12 : 9.5, 0, Math.PI);
+    ctx.fill();
+
+    // 7. Special Accessories / Lightsticks
+    if (char.role === "sparkle") { // Aira: Star hair clip & Mini glowing wand
+      ctx.font = "12px sans-serif";
+      ctx.fillText("⭐", 7, -12);
+      ctx.fillText("🪄", 11, 4);
+    } else if (char.role === "healer") { // Rumi: Vocal Mic
+      ctx.font = "12px sans-serif";
+      ctx.fillText("🎤", 9, 3);
+    } else if (char.role === "combo") { // Mira: Dancing Ribbon
+      ctx.font = "12px sans-serif";
+      ctx.fillText("🩰", 9, 3);
+    } else if (char.role === "shield") { // Zoey: Cyber Headphones
+      ctx.font = "12px sans-serif";
+      ctx.fillText("🎧", 0, -14);
+    } else if (isLeader) { // Mommy Sindhu: Golden Tiara & Lightstick
+      ctx.font = "14px sans-serif";
+      ctx.fillText("👑", 0, -16);
+      ctx.fillText("✨", 12, 2);
+    }
+
+    // 8. Name & Title Label Banner
+    ctx.font = `bold ${isLeader ? '11px' : '9px'} Fredoka, sans-serif`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(c.icon, 0, 0);
-    ctx.font = "bold 10px Fredoka, sans-serif";
-    ctx.fillStyle = "#ff85be";
-    ctx.fillText(c.name.split(" ")[0], 0, -18);
+    ctx.fillStyle = isLeader ? "#ffd700" : "#ffffff";
+    ctx.shadowColor = "#000";
+    ctx.shadowBlur = 4;
+    ctx.fillText(char.name.toUpperCase(), 0, -22);
+    ctx.font = "8px Quicksand, sans-serif";
+    ctx.fillStyle = isLeader ? "#ff85be" : char.color;
+    ctx.fillText(char.title || "Hero", 0, -13);
+
     ctx.restore();
+  }
+
+  // 3. RENDER 4 AI COMPANIONS (Rumi, Mira, Zoey, and Aira as 4th Companion)
+  companions.forEach(c => {
+    drawAnimeIdol(c.x, c.y, c, false);
   });
 
-  // 4. PLAYABLE HERO DUO (Mommy Sindhu & Star Hunter Aira)
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  ctx.beginPath();
-  ctx.arc(0, 0, player.radius + 10, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255, 215, 0, 0.25)";
-  ctx.fill();
-  ctx.font = "28px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("👩🏻‍🎤", -12, 0);
-  ctx.font = "24px sans-serif";
-  ctx.fillText("👧🏻✨", 14, 2);
-  ctx.font = "bold 11px Fredoka, sans-serif";
-  ctx.fillStyle = "#ffd700";
-  ctx.fillText("MOMMY & AIRA", 0, -player.radius - 6);
-  ctx.restore();
+  // 4. RENDER TEAM LEADER: MOMMY SINDHU
+  const leaderSindhu = {
+    name: "Sindhu",
+    title: "Team Leader",
+    color: "#ff2a85",
+    hair: "#3a1c54",
+    animFrame: player.angle || 0
+  };
+  drawAnimeIdol(player.x, player.y, leaderSindhu, true);
 
   // 5. DEMONS
   for (let d of demons) {
