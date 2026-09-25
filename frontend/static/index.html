@@ -603,6 +603,25 @@ if (mobSparkle) {
   mobSparkle.addEventListener("touchstart", (e) => { e.preventDefault(); fireSparkleBeam(); });
 }
 
+// Direct Click & Tap Listener on Canvas for Portals
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  portals.forEach(p => {
+    if (Math.hypot(clickX - p.x, clickY - p.y) < 42) {
+      playTone(659.25, 'triangle', 0.25);
+      addConfetti(p.x, p.y, "#00f0ff");
+      // Teleport player near portal
+      player.x = p.x;
+      player.y = p.y + 40;
+      displayAgentSpeech(`🌀 Teleported into ${p.name}! Agent is inspecting area for secret clues…`);
+      callAgentAction(`Inspect ${p.name} (${p.target}) for mystery clues and magical tools`);
+    }
+  });
+});
+
 // ENTITIES
 let sparkles = [];
 let demons = [];
@@ -860,6 +879,19 @@ function update() {
     boss.x += Math.cos(ang) * boss.speed;
     boss.y += Math.sin(ang) * boss.speed;
   }
+
+  // Check Backstage Portals Collision
+  portals.forEach(p => {
+    if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + 30) {
+      if (!p.cooldown || Date.now() - p.cooldown > 8000) {
+        p.cooldown = Date.now();
+        playTone(659.25, 'triangle', 0.25);
+        addConfetti(p.x, p.y, "#00f0ff");
+        displayAgentSpeech(`🌀 Stepped into ${p.name}! Agent is inspecting area for secret clues…`);
+        callAgentAction(`Inspect ${p.name} (${p.target}) for mystery clues and magical tools`);
+      }
+    }
+  });
 
   // Collectibles
   for (let i = lightsticks.length - 1; i >= 0; i--) {
